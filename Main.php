@@ -1,7 +1,7 @@
 <?php
 
 // Read in CSV file
-$csvFile = 'C:\phpCsvToPdfNoLibraries\test.csv';
+$csvFile = 'C:\Users\Andrew\Documents\GitHub\phpCsvToPdfNoLibraries\Book1.csv';
 
 //Read data into data obj
 $csvData = file_get_contents($csvFile);
@@ -20,14 +20,9 @@ $file = new SplFileObject($csvFile, 'r');
 //Seek to the end of the file
 $file->seek(PHP_INT_MAX);
 
-//print_r($csvData);
-
-//Print filesize
-//TODO this will be used in the future to determine PDF length
-//echo $file->key() + 1;
+//Determine PDF length based on filesize
+//Anything above 50 will create more than one page
 $totalRows =  $file->key();
-
-
 
 //Determining the number of pages needed based on the length of the data
 //50 lines is based on 12pt font
@@ -35,19 +30,13 @@ $fileLength = $file->key() /50;
 $pages = ceil($fileLength);
 $content = 0;
 
-
-
-
 //splitting up the csv into chunks that will fit on each page
 $chunk_size = 50;
 $csv_data = array_map('str_getcsv', file($csvFile));
 $chunked_data = array_chunk($csv_data, $chunk_size);
-//print_r(implode(" ", $chunked_data));
-//print_r($chunked_data);
 $chunkCount = 1;
 $finalChunk = $pages;
 $pageCounter = $pages;
-
 
 // Split CSV data into rows and columns
 $rows = explode("\n", $csvData);
@@ -61,17 +50,13 @@ $rows = str_replace("     ", " ", $rows);
 $rows = str_replace("      ", " ", $rows);
 $rows = str_replace("       ", " ", $rows);
 $rows = str_replace("        ", " ", $rows);
-
 $rows = str_replace("   ", " ", $rows);
 $rows = str_replace(",", " | ", $rows);
-
 $rows = str_replace("\"", "", $rows);
 $rows = str_replace("| 	 | 	 | 	 |  |  |  |  |  |", "", $rows);
 $rows = str_replace(" |  |  |  |  |  |  |  |  | ", "", $rows);
 $rows = str_replace(" |  |  | ", "|", $rows);
 $rows = str_replace("out) ", "out)\n\n", $rows);
-//$rows = str_replace("  ", "|", $rows);
-print_r($rows);
 
 // Set output file name
 $pdfFile = $fullFileName;
@@ -79,6 +64,7 @@ $pdfFile = $fullFileName;
 // Open new PDF file for writing
 $pdf = fopen($pdfFile, "w");
 
+//Setting variables that will be used to build the PDF elements
 $objNum = 1;   
 $versionNum = 0;
 $pageNum = $pages;
@@ -112,8 +98,10 @@ fwrite($pdf, "<</Type /Pages".$lineFeed);
 fwrite($pdf, " /Count ".$pageNum.$lineFeed);
 fwrite($pdf, " /Kids [".$objNum+1..$space.">>".$lineFeed.$eo);
 
+//Object 2 aka Page 1
 fwrite($pdf, "2 0 obj\n<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [4 0 R]\n>>\nendobj\n\n");
 
+//Moving to the next object
 $objNum++;
 
 //Page(s)
@@ -133,64 +121,56 @@ fwrite($pdf, $contents.$space.$versionNum.$space.$o);
 fwrite($pdf, $stream);
 fwrite($pdf, $leading);
 
-fwrite($pdf, "(".$filename.")".$textPaint.$return.$lineFeed);
+//Setting the filename
+fwrite($pdf, "(".$filename.")".$textPaint.$return.$lineFeed);  
 
-  
-
-
+//Paginating the data on page 1
 if ($rows != null)  {
-    
-    //for($x = 100; $x > 0;$x--){
     while ($rowCount <= 50){
 fwrite($pdf, "(".$rows[$rowCount].")".$textPaint.$return.$lineFeed);
-//echo $rowCount." ";
  $rowCount++;
-
 }}
 
+//Ending the object
 fwrite($pdf, $endstream.$eo);
 
+//Setting the variables for pages after page 1
 $count = 0;
 $objNumber = 7;
 $contNumber = 8;
 $lengthNum = 9;
-$refNum1 = 0;
-$refNum2 = 49;
+$refNum1 = 51;
+$refNum2 = 101;
 
-
-//while ($rowCount <= $totalRows){
-//    echo $rowCount." ";
-    
-
+//Creating hte pages
 while ($pages > 1){
-    echo $pages." ";
+    
      //Page Setup
      fwrite($pdf, $objNumber." 0 obj\n");
      fwrite($pdf, "<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [".$contNumber." 0 R]\n>>\n");
      fwrite($pdf, "endobj\n\n");
-     $kids[] = $objNumber." 0 R ";    
-
+     $kids[] = $objNumber." 0 R ";
      
     //Contents
     fwrite($pdf, $contNumber." 0 obj\n<</Length ".$lengthNum.">>\nstream\nBT\n /F0 12 Tf\n40 750 Td\n14 TL\n");
-    
-    while ($refNum1 <= $refNum2 && $rowCount <= $totalRows){
-        
-       
+
+    //Paginating the data onto the pages
+    while ($rowCount <= $refNum2 && $rowCount <= $totalRows){
+               
         fwrite($pdf, "(".$rows[$rowCount].")".$textPaint.$return.$lineFeed);
+        echo $rowCount." ";
+        $rowCount++;       
 
-        $rowCount++;
-        
-
-    }
-
+    }    
     
-   
+    //Moving onto addional objects
     $objNumber = $objNumber + 3;
     $contNumber = $contNumber + 3;
     $lengthNum = $lengthNum + 3;
     $pages--;
+    $refNum2 = $refNum2 + 50;
     
+    //Ending the stream (text)
     fwrite($pdf, ") Tj T*\nET\nendstrean\nendobj\n\n");
 
     //Length
@@ -199,16 +179,10 @@ while ($pages > 1){
     
 }
 
-
-
 //Catalog
 fwrite($pdf, $catalog.$space.$versionNum.$space.$o);
 fwrite($pdf, "<< /Type /Catalog".$lineFeed." /Pages".$space.$parent.$space.$versionNum.$space."R".$lineFeed.">>".$lineFeed);
 fwrite($pdf, $eo);
-
-//createNewPage($pdf, 13, 14, 15, $$data, $kids);
-
-//print_r($kids);
 
 //Cross-Refrence Table
 fwrite($pdf, "xref".$lineFeed.$lineFeed);
@@ -218,119 +192,32 @@ fwrite($pdf, "trailer".$lineFeed);
 fwrite($pdf, "<< /Root ".$catalog.$space.$versionNum.$space."R".$lineFeed);
 fwrite($pdf, $eof);
 
-
+//Inserting additional objects (visible pages) to Kids to be displayed
 $kids[] = "]\n";
 $impKids = implode(" ", $kids);
-
 $exploded = fgets($pdf);
-
-$explode = explode(",",$exploded);
-   
+$explode = explode(",",$exploded);   
 $insertPosition = fseek($pdf, 40);
 $modifiedContent = substr_replace($explode, $impKids, $insertPosition);
 $finalModified = implode(" ", $modifiedContent);
 fwrite($pdf, $finalModified);
 
-
-//fseek($pdf, 40);
-//finsert($pdf, $kids);
-//fclose($pdf);
-
-//$pdf = fopen($pdfFile, "a+");
-
-
-//Adding the /Kids to the header
-//fseek($pdf, 40);
-//fwrite($pdf, implode(" ", $kids));
-
-
-function finsert($handle, $string, $bufferSize = 16384) {
-    $insertionPoint = ftell($handle);
-
-    // Create a temp file to stream into
-    $tempPath = tempnam(sys_get_temp_dir(), "file-chainer");
-    $lastPartHandle = fopen($tempPath, "w");
-
-    // Read in everything from the insertion point and forward
-    while (!feof($handle)) {
-        fwrite($lastPartHandle, fread($handle, $bufferSize), $bufferSize);
-    }
-
-    // Rewind to the insertion point
-    fseek($handle, $insertionPoint);
-
-    // Rewind the temporary stream
-    rewind($lastPartHandle);
-
-    // Write back everything starting with the string to insert
-    fwrite($handle, $string);
-    while (!feof($lastPartHandle)) {
-        fwrite($handle, fread($lastPartHandle, $bufferSize), $bufferSize);
-    }
-
-    // Close the last part handle and delete it
-    fclose($lastPartHandle);
-    unlink($tempPath);
-
-    // Re-set pointer
-    fseek($handle, $insertionPoint + strlen($string));
-}
-
-
-
+//Function to create new pages for data that extends beyond page 1
+//Accepts args for Object Number, Contents Number, Length Number, the Data to be paginated, and the object to be inserted into Kids
+//The Object, Contents, and Length number will ALWAYS be sequential, E.g. 7, 8, 9; 14, 15, 16. 
+//The Object number will ALWAYS be the same as the number being inserted into Kids.
 function createNewPage( $pdf, int $objectNumber, int $contentsNumber, int $lengthNumber, string $data, $kids){
     //Page Setup
     fwrite($pdf, $objectNumber." 0 obj\n");
     fwrite($pdf, "<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [".$contentsNumber." 0 R]\n>>\n");
     fwrite($pdf, "endobj\n\n");
-    $kids[] = $objectNumber." 0 R ";
-    
+    $kids[] = $objectNumber." 0 R ";    
 
     //Contents
     fwrite($pdf, $contentsNumber." 0 obj\n<</Length ".$lengthNumber.">>\nstream\nBT\n /F0 12 Tf\n40 750 Td\n14 TL\n(".$data.") Tj T*\nET\nendstrean\nendobj\n\n");
 
     //Length
     fwrite($pdf, $lengthNumber." 0 obj\n36\nendobj\n\n");
-
-    
-
-
 }
 
-
-/*
-while($pages > 1){
-    $pages--;
-    echo $pages;
-//loop if there are more than one pages
-// Write PDF header
-    foreach($chunked_data as $chunk) {      
-            if ($finalChunk >= 1){            
-            $chunkName = "chunk".$finalChunk;
-            $chunkContents = $row[$finalChunk];
-            echo "Final Chunk: ".$finalChunk. " ";
-            echo "Chunk Name: ".$chunkName. " ";
-            echo "Chunk Contents: ".$chunkContents. " ";
-        }
-        }    
-    }
-*/
-
-// Output PDF document
-//header('Content-Type: application/pdf');
-//header("Content-Disposition: attachment; filename=\"$pdfFile\"");
-//$pdf->Output("$pdfFile", F);
-//readfile($pdfFile);
-
-// Delete PDF file
-//unlink($pdfFile);
-
-
-function debug_to_console($data) {
-    $output = $data;
-    if (is_array($output))
-        $output = implode(',', $output);
-
-   //echo "<script>console.log('Debug Objects: " . $output . "' );</script>";
-}
 ?>
