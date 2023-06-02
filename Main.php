@@ -1,7 +1,7 @@
 <?php
 
 // Read in CSV file
-$csvFile = 'C:\Users\Andrew\Documents\GitHub\phpCsvToPdfNoLibraries\Book1.csv';
+$csvFile = 'C:\phpCsvToPdfNoLibraries\Book1.csv';
 
 //Read data into data obj
 $csvData = file_get_contents($csvFile);
