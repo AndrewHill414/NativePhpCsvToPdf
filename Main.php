@@ -1,13 +1,14 @@
 <?php
 
 // Read in CSV file
-$csvFile = 'C:\phpCsvToPdfNoLibraries\Book1.csv';
+$csvFile = 'C:\Users\Andrew\Documents\GitHub\phpCsvToPdfNoLibraries\L&M2023-04-27 14_17_11.csv';
 
 //Read data into data obj
 $csvData = file_get_contents($csvFile);
 
 //Set extension
 $fileExtension = '.pdf';
+
 //Capture file name
 $filename = basename($csvFile, ".csv");
 
@@ -26,12 +27,14 @@ $totalRows =  $file->key();
 
 //Determining the number of pages needed based on the length of the data
 //50 lines is based on 12pt font
-$fileLength = $file->key() /50;
+$fileLength = $file->key() /40;
 $pages = ceil($fileLength);
+echo $pages;
+$allPages = $pages;
 $content = 0;
 
 //splitting up the csv into chunks that will fit on each page
-$chunk_size = 50;
+$chunk_size = 40;
 $csv_data = array_map('str_getcsv', file($csvFile));
 $chunked_data = array_chunk($csv_data, $chunk_size);
 $chunkCount = 1;
@@ -51,25 +54,29 @@ $rows = str_replace("      ", " ", $rows);
 $rows = str_replace("       ", " ", $rows);
 $rows = str_replace("        ", " ", $rows);
 $rows = str_replace("   ", " ", $rows);
-$rows = str_replace(",", " | ", $rows);
+$rows = str_replace(",", "   |   ", $rows);
 $rows = str_replace("\"", "", $rows);
 $rows = str_replace("| 	 | 	 | 	 |  |  |  |  |  |", "", $rows);
 $rows = str_replace(" |  |  |  |  |  |  |  |  | ", "", $rows);
 $rows = str_replace(" |  |  | ", "|", $rows);
 $rows = str_replace("out) ", "out)\n\n", $rows);
+$rows = str_replace("|   	   |   	   |   	   |      |      |      |      |      |", "", $rows);
+$rows = str_replace("|      |      |      |      |      |      |      |      |", "", $rows);
+$rows = str_replace("|      |      |", "|", $rows);
 
 // Set output file name
 $pdfFile = $fullFileName;
 
+
 // Open new PDF file for writing
-$pdf = fopen($pdfFile, "w");
+$pdf = fopen($pdfFile, "r+");
 
 //Setting variables that will be used to build the PDF elements
 $objNum = 1;   
 $versionNum = 0;
 $pageNum = $pages;
 $space = " ";
-$pageSize = " /MediaBox [0 0 612 792]";
+$pageSize = " /MediaBox [0 0 792 612 ]";
 $parent = 1;
 $resources = 3;
 $lineFeed = "\n";
@@ -81,7 +88,7 @@ $rowCount = 0;
 $o = "obj".$lineFeed;
 $eo = "endobj".$lineFeed.$lineFeed;
 $font = "<< /Font".$lineFeed." << /F0".$lineFeed."  << /Type /Font".$lineFeed."   /BaseFont /Times-Roman".$lineFeed."    /Subtype /Type1".$lineFeed."  >>".$lineFeed." >>".$lineFeed.">>".$lineFeed.$eo;
-$stream = "<< >>".$lineFeed."stream".$lineFeed."BT".$lineFeed." /F0 12 Tf".$lineFeed."40 750 Td".$lineFeed;
+$stream = "<< >>".$lineFeed."stream".$lineFeed."BT".$lineFeed." /F0 12 Tf".$lineFeed."40 585 Td".$lineFeed;
 $endstream = "ET".$lineFeed."endstream".$lineFeed;
 $catalog = 5;
 $eof = ">>".$lineFeed."startxref".$lineFeed."%%EOF";
@@ -89,6 +96,7 @@ $kids = array();
 $kids[] = "/Kids [2 0 R";
 
 //Header
+echo "writing header";
 fwrite($pdf, "");
 fwrite($pdf, "%PDF-2.0".$lineFeed."%äãÏÒ".$lineFeed);
 
@@ -96,10 +104,11 @@ fwrite($pdf, "%PDF-2.0".$lineFeed."%äãÏÒ".$lineFeed);
 fwrite($pdf, $parent.$space.$versionNum.$space.$o);
 fwrite($pdf, "<</Type /Pages".$lineFeed);
 fwrite($pdf, " /Count ".$pageNum.$lineFeed);
-fwrite($pdf, " /Kids [".$objNum+1..$space.">>".$lineFeed.$eo);
+fwrite($pdf, " /Kids [".$objNum+1..$space."                                                                                                                                                                                                        >>".$lineFeed.$eo);
 
 //Object 2 aka Page 1
-fwrite($pdf, "2 0 obj\n<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [4 0 R]\n>>\nendobj\n\n");
+echo "writing page 1";
+fwrite($pdf, "2 0 obj\n<< /Type /Page\n/MediaBox [0 0 792 612]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [4 0 R]\n>>\nendobj\n\n");
 
 //Moving to the next object
 $objNum++;
@@ -126,7 +135,7 @@ fwrite($pdf, "(".$filename.")".$textPaint.$return.$lineFeed);
 
 //Paginating the data on page 1
 if ($rows != null)  {
-    while ($rowCount <= 50){
+    while ($rowCount <= 40){
 fwrite($pdf, "(".$rows[$rowCount].")".$textPaint.$return.$lineFeed);
  $rowCount++;
 }}
@@ -135,48 +144,49 @@ fwrite($pdf, "(".$rows[$rowCount].")".$textPaint.$return.$lineFeed);
 fwrite($pdf, $endstream.$eo);
 
 //Setting the variables for pages after page 1
+$counter = 2;
 $count = 0;
 $objNumber = 7;
 $contNumber = 8;
 $lengthNum = 9;
-$refNum1 = 51;
-$refNum2 = 101;
+$refNum1 = 41;
+$refNum2 = 81;
 
-//Creating hte pages
+//Creating the pages
 while ($pages > 1){
     
      //Page Setup
      fwrite($pdf, $objNumber." 0 obj\n");
-     fwrite($pdf, "<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [".$contNumber." 0 R]\n>>\n");
+     fwrite($pdf, "<< /Type /Page\n/MediaBox [0 0 792 612]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [".$contNumber." 0 R]\n>>\n");
      fwrite($pdf, "endobj\n\n");
-     $kids[] = $objNumber." 0 R ";
+     $kids[] = $objNumber." 0 R";
      
     //Contents
-    fwrite($pdf, $contNumber." 0 obj\n<</Length ".$lengthNum.">>\nstream\nBT\n /F0 12 Tf\n40 750 Td\n14 TL\n");
+    fwrite($pdf, $contNumber." 0 obj\n<</Length ".$lengthNum.">>\nstream\nBT\n /F0 12 Tf\n40 575 Td\n14 TL\n");
 
     //Paginating the data onto the pages
     while ($rowCount <= $refNum2 && $rowCount <= $totalRows){
                
         fwrite($pdf, "(".$rows[$rowCount].")".$textPaint.$return.$lineFeed);
-        echo $rowCount." ";
+       // echo $rowCount." ";
         $rowCount++;       
 
     }    
+    echo "writing page ".$counter."\n";
     
     //Moving onto addional objects
     $objNumber = $objNumber + 3;
     $contNumber = $contNumber + 3;
     $lengthNum = $lengthNum + 3;
     $pages--;
-    $refNum2 = $refNum2 + 50;
+    $refNum2 = $refNum2 + 40;
+    $counter++;
     
     //Ending the stream (text)
     fwrite($pdf, ") Tj T*\nET\nendstrean\nendobj\n\n");
 
     //Length
-    fwrite($pdf, $lengthNum." 0 obj\n36\nendobj\n\n");
-
-    
+    fwrite($pdf, $lengthNum." 0 obj\n36\nendobj\n\n");    
 }
 
 //Catalog
@@ -188,36 +198,37 @@ fwrite($pdf, $eo);
 fwrite($pdf, "xref".$lineFeed.$lineFeed);
 
 //Trailer
+echo "Writing Trailer";
 fwrite($pdf, "trailer".$lineFeed);
 fwrite($pdf, "<< /Root ".$catalog.$space.$versionNum.$space."R".$lineFeed);
 fwrite($pdf, $eof);
 
+
 //Inserting additional objects (visible pages) to Kids to be displayed
+echo "Changing Kids";
+
+//Close off the kids and linefeed
 $kids[] = "]\n";
+
+//Substr_replace can't work with an array, implode() converts the array to a string
 $impKids = implode(" ", $kids);
+
+//putting the resource into a string
 $exploded = fgets($pdf);
-$explode = explode(",",$exploded);   
-$insertPosition = fseek($pdf, 40);
-$modifiedContent = substr_replace($explode, $impKids, $insertPosition);
-$finalModified = implode(" ", $modifiedContent);
-fwrite($pdf, $finalModified);
 
-//Function to create new pages for data that extends beyond page 1
-//Accepts args for Object Number, Contents Number, Length Number, the Data to be paginated, and the object to be inserted into Kids
-//The Object, Contents, and Length number will ALWAYS be sequential, E.g. 7, 8, 9; 14, 15, 16. 
-//The Object number will ALWAYS be the same as the number being inserted into Kids.
-function createNewPage( $pdf, int $objectNumber, int $contentsNumber, int $lengthNumber, string $data, $kids){
-    //Page Setup
-    fwrite($pdf, $objectNumber." 0 obj\n");
-    fwrite($pdf, "<< /Type /Page\n/MediaBox [0 0 612 792]\n/Resources 3 0 R\n/Parent 1 0 R\n/Contents [".$contentsNumber." 0 R]\n>>\n");
-    fwrite($pdf, "endobj\n\n");
-    $kids[] = $objectNumber." 0 R ";    
+//Substr_replace can't work with a resource, explode() converts the resource into a string
+$explode = explode(",",$exploded);
 
-    //Contents
-    fwrite($pdf, $contentsNumber." 0 obj\n<</Length ".$lengthNumber.">>\nstream\nBT\n /F0 12 Tf\n40 750 Td\n14 TL\n(".$data.") Tj T*\nET\nendstrean\nendobj\n\n");
+//Replacing the old kids with the new kids
+$newPdf = substr_replace($explode, $impKids, 40, 0);
 
-    //Length
-    fwrite($pdf, $lengthNumber." 0 obj\n36\nendobj\n\n");
-}
+//Imploding the new strings together
+$newPdf = implode(" ", $newPdf);
+
+//Seeking to where to put the new kids string
+fseek($pdf, 54);
+
+//Writing to file
+fwrite($pdf, $newPdf);
 
 ?>
